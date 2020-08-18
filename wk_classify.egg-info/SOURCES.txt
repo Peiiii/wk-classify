@@ -1,0 +1,15 @@
+README.md
+setup.py
+wcf/__init__.py
+wcf/packages/__init__.py
+wcf/packages/resnet/__init__.py
+wcf/packages/resnet/dataset.py
+wcf/packages/resnet/network.py
+wcf/packages/resnet/predict.py
+wcf/packages/resnet/resnets.py
+wcf/packages/resnet/training.py
+wk_classify.egg-info/PKG-INFO
+wk_classify.egg-info/SOURCES.txt
+wk_classify.egg-info/dependency_links.txt
+wk_classify.egg-info/entry_points.txt
+wk_classify.egg-info/top_level.txt
