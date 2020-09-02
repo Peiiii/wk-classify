@@ -6,6 +6,14 @@ import torch
 IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
 
 
+def load_image_files(dir,recursive=False):
+    fs=[]
+    for ext in IMG_EXTENSIONS:
+        if recursive:
+            fs += glob.glob(dir + '/**/*' + ext,recursive=True)
+        else:
+            fs += glob.glob(dir + '/*' + ext)
+    return fs
 def load_image_folder(path):
     classes = os.listdir(path)
     files = {cls: [] for cls in classes}
@@ -14,7 +22,6 @@ def load_image_folder(path):
         for ext in IMG_EXTENSIONS:
             files[cls] += glob.glob(cls_dir + '/*' + ext)
     return files
-
 
 def adaptive_duplicate(class_files):
     max_length = max([len(fs) for fs in class_files.values()])

@@ -1,21 +1,21 @@
-from .network import Resnet
 from .dataset import Dataset
 import os
 import torch
 from torch.nn import CrossEntropyLoss
 import torch.optim
 import numpy as np
-
-
-class BaseConfig:
-
+from wk import PointDict
+from .config import ConfigBase
+from wcf.networks.utils import load_model
+class TrainValConfigBase(ConfigBase):
+    MODEL_TYPE='resnet18'
     NUM_CLASSES = None
     TRAIN_DIR = None
     VAL_DIR = None
     DATA_DIR = None
     INPUT_SIZE = (224, 224)
     BATCH_SIZE = 16
-    MAX_EPOCHS = 50
+    MAX_EPOCHS = 100
     PATIENCE = 20
     LR_INIT = 1e-3
     LR_END = 1e-5
@@ -34,25 +34,29 @@ class BaseConfig:
     USE_tqdm_VAL=False
     GEN_CLASSES_FILE=False
     CLASSES_FILE_PATH='classes.txt'
+
+
     def __init__(self):
         self.train_data = Dataset(path=self.TRAIN_DIR, balance_classes=self.BALANCE_CLASSES, batch_size=self.BATCH_SIZE,
                                   device=self.DEVICE, transform=self.train_transform)
         self.val_data = Dataset(path=self.VAL_DIR, balance_classes=self.BALANCE_CLASSES_VAL, batch_size=self.BATCH_SIZE,
                                 device=self.DEVICE, transform=self.val_transform)
-
+        if self.__class__.NUM_CLASSES is None:
+            self.__class__.NUM_CLASSES=self.train_data.num_classes
         self.model = self.get_model()
         if self.GEN_CLASSES_FILE:
             with open(self.CLASSES_FILE_PATH,'w') as f:
                 f.write('\n'.join(self.train_data.classes))
-
+        print('CONFIG INFO'.center(200,'*'))
+        PointDict(**self.get_config_info_dict()).print1()
     def check_params(self):
         assert self.DATA_DIR or self.TRAIN_DIR
-
     def get_model(self, num_classes=None):
-        if num_classes is None:
-            num_classes = self.train_data.num_classes
-        return Resnet(num_classes=num_classes, pretrained=self.USE_PRETRAINED)
-
+        num_classes=num_classes or self.NUM_CLASSES
+        assert num_classes
+        model=load_model(self.MODEL_TYPE,num_classes=num_classes,pretrained=self.USE_PRETRAINED)
+        model.to(self.DEVICE)
+        return model
 
 class AccuracyMetric:
     def __init__(self):
@@ -86,6 +90,7 @@ class AccuracyMetric:
     def batch_step(self, preds, labels):
         preds, labels = preds.cpu(), labels.cpu()
         batch_size, num_classes = preds.shape
+        torch.softmax(preds,1)
         _, preds = torch.max(preds, 1)
         labels = torch.zeros((batch_size, num_classes)).scatter_(-1, torch.unsqueeze(labels, -1), 1)
         preds = torch.zeros((batch_size, num_classes)).scatter_(-1, torch.unsqueeze(preds, -1), 1)
@@ -93,6 +98,7 @@ class AccuracyMetric:
         self.pred_counts += torch.sum(preds, 0).numpy()
         self.correct_counts += torch.sum(labels * preds, 0).numpy()
         self.sample_counts += len(labels)
+        # print(self.label_counts,self.pred_counts,self.correct_counts,self.sample_counts)
 
 
 class MonitoredList:
@@ -156,7 +162,7 @@ class HistoryMonitor:
 
 
 def val(cfg):
-    assert isinstance(cfg, BaseConfig)
+    assert isinstance(cfg, TrainValConfigBase)
     model = cfg.model
     model.eval()
     losses = []
@@ -178,12 +184,10 @@ def val(cfg):
 
 
 def train(cfg):
-    assert isinstance(cfg, BaseConfig)
+    assert isinstance(cfg, TrainValConfigBase)
     train_data = cfg.train_data
     model = cfg.model
-    if cfg.WEIGHTS_INIT and os.path.exists(cfg.WEIGHTS_INIT):
-        model.load_state_dict(torch.load(cfg.WEIGHTS_INIT), strict=False)
-    model.to(cfg.DEVICE)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.LR_INIT)
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, cfg.MAX_EPOCHS, cfg.LR_END)
 
@@ -201,7 +205,8 @@ def train(cfg):
         if cfg.USE_tqdm_TRAIN:
             import tqdm
             train_data=tqdm.tqdm(train_data)
-
+        log=('Epoch %s'%(epoch)).center(200,'*')
+        print(log)
         for step, (inputs, labels) in enumerate(train_data):
             global_step += 1
             outputs = model(inputs)
@@ -233,10 +238,9 @@ def train(cfg):
         train_res['loss'] = np.mean(losses)
         train_history.push(train_res)
         lr = optimizer.state_dict()['param_groups'][0]['lr']
-        log = '''Epoch:{epoch}\tTrainLoss:{train_loss:.4f}\tTrainAccuracy:{train_acc:.4f}\tTrainRecalls:{train_recalls}\tTrainPrecisions:{train_precisions}\tLearningRate:{lr:.6f}'''.format(
+        log = '''TrainLoss:{train_loss:.4f}\tTrainAccuracy:{train_acc:.4f}\tTrainRecalls:{train_recalls}\tTrainPrecisions:{train_precisions}\tLearningRate:{lr:.6f}'''.format(
             epoch=epoch, lr=lr, train_loss=train_res['loss'], train_acc=train_res['accuracy'],
             train_recalls=train_res['recalls'], train_precisions=train_res['precisions']
         )
-        print('*'*200)
         print(log)
 

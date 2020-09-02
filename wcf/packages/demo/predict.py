@@ -1,4 +1,3 @@
-from .network import Resnet
 import torch
 import numpy as np
 import os,shutil,glob
@@ -6,14 +5,17 @@ from PIL import Image
 import cv2
 from torchvision import transforms
 import logging
-class BasePredictConfig:
+from .network import load_model
+
+
+class PredictConfigBase:
+    MODEL_TYPE='resnet18'
     CLASSES_PATH=None
     CLASSES=None
     INPUT_SIZE=(224,224)
     transform= transforms.Compose([
-            transforms.Resize(INPUT_SIZE),
+            transforms.Resize(INPUT_SIZE[::-1]),
             transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
     DEVICE=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     WEIGHTS_PATH='weights/model.pkl'
@@ -33,13 +35,13 @@ class BasePredictConfig:
         self.model.to(self.DEVICE)
         self.model.eval()
     def get_model(self):
-        return Resnet(num_classes=len(self.CLASSES))
+        return load_model(self.MODEL_TYPE,num_classes=len(self.CLASSES))
 
 
 
 class Predictor:
     def __init__(self, cfg):
-        assert isinstance(cfg,BasePredictConfig)
+        assert isinstance(cfg,PredictConfigBase)
         self.device=cfg.DEVICE
         self.model=cfg.model
         self.transform=cfg.transform
