@@ -2,6 +2,26 @@ import numpy as np
 from torchvision import transforms
 from wpcv.utils.data_aug import img_aug, random_float_generator
 from wpcv.utils.ops import pil_ops
+import os,shutil
+import cv2
+from PIL import Image
+class SaveToDir:
+    def __init__(self,path,max_num=100,remake_dir=True,save_name='%s.jpg'):
+        self.path=path
+        self.max_num=max_num
+        self.count=-1
+        self.save_name=save_name
+        if os.path.exists(path) and remake_dir:
+            shutil.rmtree(path)
+        if not os.path.exists(path):
+            os.makedirs(path)
+    def __call__(self, img):
+        self.count+=1
+        if self.count>=self.max_num:
+            return img
+        path=os.path.join(self.path,self.save_name%(self.count))
+        img.save(path)
+        return img
 
 class EasyTransform(list):
     def __init__(self,*args,**kwargs):
@@ -53,7 +73,7 @@ class EasyTransform(list):
         return T
 
     def Resize(self, size):
-        T = transforms.Resize(size[::-1])
+        T = transforms.Resize(size)
         self.append(T)
         return T
 
@@ -67,10 +87,15 @@ class EasyTransform(list):
         self.append(T)
         return T
 
+    def SaveToDir(self,path,max_num=100,remake_dir=True,save_name='%s.jpg'):
+        T=SaveToDir(path,max_num,remake_dir,save_name)
+        self.append(T)
+        return T
     def Compose(self, trans):
         T = transforms.Compose(trans)
         self.append(T)
         return T
+
     def __call__(self, *args, **kwargs):
         if not  self.finalized:
             self.trans=self._final()

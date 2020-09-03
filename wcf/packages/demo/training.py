@@ -7,8 +7,33 @@ import numpy as np
 from wk import PointDict
 from .config import ConfigBase
 from wcf.networks.utils import load_model
+import logging
+
+def load_weights(model, weights_path=None, except_keys=[],strict=False):
+    if weights_path:
+        if os.path.exists(weights_path):
+            try:
+                state_dict = torch.load(weights_path)
+                remove_keys = []
+                for k in state_dict.keys():
+                    for key in except_keys:
+                        if k.startswith(key):
+                            remove_keys.append(k)
+                for k in remove_keys:
+                    del state_dict[k]
+                    print('ignore key:', k)
+                model.load_state_dict(state_dict, strict=strict)
+                print('Weights loaded from %s'%(weights_path))
+            except:
+                logging.warning('Cannot load pretrained model %s' % (weights_path))
+
+        if not os.path.exists(weights_path):
+            logging.warning('weights path %s does not exists.'%(weights_path))
+    return model
+
 class TrainValConfigBase(ConfigBase):
     MODEL_TYPE='resnet18'
+    TAG = ''
     NUM_CLASSES = None
     TRAIN_DIR = None
     VAL_DIR = None
@@ -26,7 +51,9 @@ class TrainValConfigBase(ConfigBase):
     criterion = CrossEntropyLoss()
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     WEIGHTS_SAVE_INTERVAL = 1
-    WEIGHTS_SAVE_DIR = 'weights'
+    WEIGHTS_SAVE_DIR = 'weights/training'
+    WEIGHTS_SAVE_BEST_NAME = 'model{tag}_best_[epoch={epoch}&acc={val_acc:.4f}].pkl'
+    WEIGHTS_SAVE_NAME = 'model{tag}.pkl'
     VAL_INTERVAL = 1
     train_transform = None
     val_transform = None
@@ -44,10 +71,13 @@ class TrainValConfigBase(ConfigBase):
         if self.__class__.NUM_CLASSES is None:
             self.__class__.NUM_CLASSES=self.train_data.num_classes
         self.model = self.get_model()
+        self.model=load_weights(self.model,weights_path=self.WEIGHTS_INIT)
+        self.model.to(self.DEVICE)
         if self.GEN_CLASSES_FILE:
             with open(self.CLASSES_FILE_PATH,'w') as f:
                 f.write('\n'.join(self.train_data.classes))
         print('CONFIG INFO'.center(200,'*'))
+        # print(self.get_config_info_dict())
         PointDict(**self.get_config_info_dict()).print1()
     def check_params(self):
         assert self.DATA_DIR or self.TRAIN_DIR
@@ -55,7 +85,6 @@ class TrainValConfigBase(ConfigBase):
         num_classes=num_classes or self.NUM_CLASSES
         assert num_classes
         model=load_model(self.MODEL_TYPE,num_classes=num_classes,pretrained=self.USE_PRETRAINED)
-        model.to(self.DEVICE)
         return model
 
 class AccuracyMetric:
@@ -171,7 +200,6 @@ def val(cfg):
     if cfg.USE_tqdm_VAL:
         import tqdm
         val_data=tqdm.tqdm(val_data)
-
     for step, (inputs, labels) in enumerate(val_data):
         outputs = model(inputs)
         loss = cfg.criterion(outputs, labels)
@@ -205,7 +233,7 @@ def train(cfg):
         if cfg.USE_tqdm_TRAIN:
             import tqdm
             train_data=tqdm.tqdm(train_data)
-        log=('Epoch %s'%(epoch)).center(200,'*')
+        log='\n'+('Epoch %s'%(epoch)).center(200,'*')
         print(log)
         for step, (inputs, labels) in enumerate(train_data):
             global_step += 1
@@ -218,29 +246,45 @@ def train(cfg):
             train_acc_metric.batch_step(outputs, labels)
             if global_step % saving_interval == 0 and global_step != 0:
                 torch.save(model.state_dict(), cfg.WEIGHTS_SAVE_DIR + '/model.pkl')
+                context = dict(
+                    tag=cfg.TAG,
+                    epoch=epoch,
+                    step=global_step,
+                )
+                torch.save(model.state_dict(),
+                           os.path.join(cfg.WEIGHTS_SAVE_DIR, cfg.WEIGHTS_SAVE_NAME.format(**context)))
             if global_step % val_interval==0 and global_step!=0:
                 val_res = val(cfg)
                 val_history.push(val_res)
-                log = '''Step:{global_step}\tValLoss:{val_loss:.4f}\tValAccuracy:{val_acc:.4f}\tValRecalls:{val_recalls}\tValPrecisions:{val_precisions}'''.format(
+                log = '''\nStep:{global_step}\tValLoss:{val_loss:.4f}\tValAccuracy:{val_acc:.4f}\tValRecalls:{val_recalls}\tValPrecisions:{val_precisions}'''.format(
                     epoch=epoch, global_step=global_step, val_loss=val_res['loss'], val_acc=val_res['accuracy'],
                     val_recalls=val_res['recalls'], val_precisions=val_res['precisions']
                 )
                 print(log)
+                context=dict(
+                    tag=cfg.TAG,
+                    epoch=epoch,
+                    step=global_step,
+                    val_acc=val_res['accuracy'],
+                    val_loss=val_res['loss'],
+                )
+
                 if val_history.get('accuracy').last_is_best():
                     torch.save(model.state_dict(),
-                               cfg.WEIGHTS_SAVE_DIR + f'''/model_best_[epoch={epoch}&acc={val_res['accuracy']:.4f}].pkl''')
+                               os.path.join(cfg.WEIGHTS_SAVE_DIR,cfg.WEIGHTS_SAVE_BEST_NAME.format(**context)))
                     torch.save(model.state_dict(), cfg.WEIGHTS_SAVE_DIR + f'''/model_best.pkl''')
                     print('New best accuracy: %.4f, model saved.'%(val_res['accuracy']))
                 model.train()
         lr_scheduler.step()
-        torch.save(model.state_dict(), cfg.WEIGHTS_SAVE_DIR + '/model.pkl')
         train_res = train_acc_metric.analyze()
         train_res['loss'] = np.mean(losses)
         train_history.push(train_res)
         lr = optimizer.state_dict()['param_groups'][0]['lr']
-        log = '''TrainLoss:{train_loss:.4f}\tTrainAccuracy:{train_acc:.4f}\tTrainRecalls:{train_recalls}\tTrainPrecisions:{train_precisions}\tLearningRate:{lr:.6f}'''.format(
+        log = '''\nTrainLoss:{train_loss:.4f}\tTrainAccuracy:{train_acc:.4f}\tTrainRecalls:{train_recalls}\tTrainPrecisions:{train_precisions}\tLearningRate:{lr:.6f}'''.format(
             epoch=epoch, lr=lr, train_loss=train_res['loss'], train_acc=train_res['accuracy'],
             train_recalls=train_res['recalls'], train_precisions=train_res['precisions']
         )
         print(log)
+        torch.save(model.state_dict(), os.path.join(cfg.WEIGHTS_SAVE_DIR, 'model.pkl'))
+
 
