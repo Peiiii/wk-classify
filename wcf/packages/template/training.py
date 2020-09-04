@@ -4,10 +4,10 @@ import torch
 from torch.nn import CrossEntropyLoss
 import torch.optim
 import numpy as np
-from wk import PointDict
 from .config import ConfigBase
 from wcf.networks.utils import load_model
 import logging
+import json
 
 def load_weights(model, weights_path=None, except_keys=[],strict=False):
     if weights_path:
@@ -77,8 +77,9 @@ class TrainValConfigBase(ConfigBase):
             with open(self.CLASSES_FILE_PATH,'w') as f:
                 f.write('\n'.join(self.train_data.classes))
         print('CONFIG INFO'.center(200,'*'))
-        # print(self.get_config_info_dict())
-        PointDict(**self.get_config_info_dict()).print1()
+        dic=self.get_config_info_dict()
+        for k,v in dic.items():
+            print('%s\t:\t%s'%(k,v))
     def check_params(self):
         assert self.DATA_DIR or self.TRAIN_DIR
     def get_model(self, num_classes=None):

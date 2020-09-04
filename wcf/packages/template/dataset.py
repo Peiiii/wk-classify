@@ -27,10 +27,10 @@ def adaptive_duplicate(class_files):
     max_length = max([len(fs) for fs in class_files.values()])
     new_class_files = {}
     for cls, fs in class_files.items():
-        # new_class_files[cls] = fs + random.choices(fs, k=max_length - len(fs))
-        scale=int(max_length//len(fs))
-        new_class_files[cls] = fs*scale
-        print(cls,scale)
+        new_class_files[cls] = fs + random.choices(fs, k=max_length - len(fs))
+        # scale=int(max_length//len(fs))
+        # new_class_files[cls] = fs*scale
+        # print(cls,scale)
     return new_class_files
 
 
@@ -39,6 +39,7 @@ class ImageFolder:
         self.class_files = load_image_folder(path)
         if balance_classes:
             self.class_files = adaptive_duplicate(self.class_files)
+        print('Data Info'.center(200,'*'))
         for k,v in self.class_files.items():
             print(k,len(v))
         self.classes = sorted(list(self.class_files.keys()))
