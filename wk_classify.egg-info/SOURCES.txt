@@ -1,6 +1,5 @@
 README.md
 setup.py
-local/__init__.py
 local/cigarette_classify/__init__.py
 local/cigarette_classify/demo_predict.py
 local/cigarette_classify/demo_test.py

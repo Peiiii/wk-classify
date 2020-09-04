@@ -39,6 +39,12 @@ def get_version():
         f.write(version)
     return version
 
+packages=setuptools.find_packages()
+except_packages=['local']
+for pkg in except_packages:
+    if pkg in packages:
+        packages.remove(pkg)
+print('packages:', packages)
 
 version = get_version()
 print("version:", version)
@@ -52,7 +58,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/Peiiii/wk-classify",
-    packages=setuptools.find_packages(),
+    packages=packages,
     package_dir={'wcf': 'wcf'},
     install_requires=[
         'wpkit2',
