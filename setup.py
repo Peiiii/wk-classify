@@ -62,7 +62,8 @@ setuptools.setup(
     package_dir={'wcf': 'wcf'},
     install_requires=[
         'wpkit2',
-        'wpcv'
+        'wpcv',
+        'pytorchcv'
     ],
     entry_points={
         'console_scripts': [
