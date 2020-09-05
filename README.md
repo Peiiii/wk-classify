@@ -8,50 +8,69 @@ pip3 install wk-classify
 
 # Usage
 
-### quick experience
+### Quick start
 ```python
-from wcf.packages.resnet.training import train, BaseConfig
-class Config(BaseConfig):
+from wcf import train,  TrainValConfigBase
+class Config(TrainValConfigBase):
     TRAIN_DIR = 'path for train set'
     VAL_DIR = 'path for val set'
 cfg=Config()
 train(cfg)
 ```
-### a real example
+### A real example
 ```python
-from wcf.packages.resnet.training import train, BaseConfig
-from torchvision import transforms
-class Config(BaseConfig):
+from wcf import train, TrainValConfigBase, val,t,EasyTransform,models_names
+class Config(TrainValConfigBase):
+    MODEL_TYPE = models_names.shufflenet_v2_x0_5
+    TAG = '[%s]'%(MODEL_TYPE)
     GEN_CLASSES_FILE = True
-    USE_tqdm_TRAIN = False # use tqdm to format output
-    INPUT_SIZE = (252,196)
-    BATCH_SIZE = 16
-    NUM_EPOCHS = 50
+    USE_tqdm_TRAIN = True
+    INPUT_SIZE = (252,196) #(w,h)
+    BATCH_SIZE = 64
+    NUM_EPOCHS = 200
     BALANCE_CLASSES = True
-    VAL_INTERVAL = 0.2 # val time insterval: 0.2 epoch (0.2* num_batches_per_epoch)
-    WEIGHTS_SAVE_INTERVAL = 0.2 #  the same as above
-    TRAIN_DIR = '<your train path>'
-    VAL_DIR = '<your val path>'
-    train_transform = transforms.Compose([
-        transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.5),
-        transforms.Resize(INPUT_SIZE),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    VAL_INTERVAL = 1
+    WEIGHTS_SAVE_INTERVAL = 1
+    WEIGHTS_INIT = 'weights/training/model_best.pkl'
+    TRAIN_DIR = '/home/ars/sda5/data/projects/烟盒/data/现场采集好坏烟照片/相机1-train'
+    VAL_DIR = '/home/ars/sda5/data/projects/烟盒/data/现场采集好坏烟照片/相机1-val'
+    val_transform = EasyTransform([
+        t.Resize(INPUT_SIZE[::-1]),
+        t.SaveToDir('data/test'),
+        t.ToTensor(),
     ])
-    val_transform = transforms.Compose([
-        transforms.Resize(INPUT_SIZE),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    train_transform = EasyTransform([
+        t.ColorJitter(brightness=0.2, contrast=0, saturation=0, hue=0),
+        # t.RandomHorizontalFlip(),
+        # t.RandomVerticalFlip(),
+        # t.RandomRotate(360),
+        t.RandomTranslate(30),
+        t.RandomBlur(p=0.3, radius=1),
+        t.RandomSPNoinse(p=0.3),
+        *val_transform,
     ])
-cfg=Config()
-train(cfg)
+    # def get_model(self, num_classes=None):
+        # model=YourModel(...)
+        # return model
+
+
+if __name__ == '__main__':
+    cfg = Config()
+    train(cfg)
+    # res=val(cfg)
+    # print(res)
+
 ```
 
 ### all options
-check out the `BaseConfig` class for all options
+see the `TrainValConfigBase` class for all options
 
 ### how to predict?
-check out `demo_predict.py`
+see `demo_predict.py`
+
+## more
+
+see `demo_train.py` and  `demo_predict.py`
 
 
 
