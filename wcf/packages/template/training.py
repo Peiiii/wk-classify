@@ -8,7 +8,6 @@ from .config import ConfigBase
 from wcf.networks.utils import load_model
 import logging
 import json
-
 def load_weights(model, weights_path=None, except_keys=[],strict=False):
     if weights_path:
         if os.path.exists(weights_path):
@@ -78,8 +77,10 @@ class TrainValConfigBase(ConfigBase):
                 f.write('\n'.join(self.train_data.classes))
         print('CONFIG INFO'.center(200,'*'))
         dic=self.get_config_info_dict()
+        max_length=max([len(k) for k in dic.keys()])
         for k,v in dic.items():
-            print('%s\t:\t%s'%(k,v))
+            # k=''
+            print('%s\t:\t%s'%(k.ljust(max_length,' '),v))
     def check_params(self):
         assert self.DATA_DIR or self.TRAIN_DIR
     def get_model(self, num_classes=None):

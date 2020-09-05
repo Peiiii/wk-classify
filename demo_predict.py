@@ -1,11 +1,11 @@
-from wcf.packages.resnet.predict import Predictor,BasePredictConfig
+from wcf import Predictor,PredictConfigBase
 import os,shutil,glob
 from PIL import Image
 
 
 def demo():
     predictor = Predictor(
-        BasePredictConfig(WEIGHTS_PATH='weights/model_best.pkl',
+        PredictConfigBase(WEIGHTS_PATH='weights/model_best.pkl',
         CLASSES_PATH='classes.txt')
     )
     data_dir='/home/ars/sda5/data/chaoyuan/datasets/classify_datasets/公章/val/0'

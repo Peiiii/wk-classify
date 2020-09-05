@@ -9,11 +9,7 @@ local/cigarette_classify/resnet.py
 local/cigarette_classify/to_onnx.py
 local/cigarette_classify/x.py
 local/scripts/__init__.py
-local/scripts/server_test.py
 local/scripts/split_trainval.py
-local/scripts/gui_tests/__init__.py
-local/scripts/gui_tests/gui_test.py
-local/scripts/gui_tests/gui_test2.py
 wcf/__init__.py
 wcf/demo.py
 wcf/networks/__init__.py

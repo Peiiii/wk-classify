@@ -2,9 +2,9 @@ import numpy as np
 from torchvision import transforms
 from wpcv.utils.data_aug import img_aug, random_float_generator
 from wpcv.utils.ops import pil_ops
-from wcf.packages.resnet.training import train, BaseConfig
+from wcf import train, TrainValConfigBase
 
-class Config(BaseConfig):
+class Config(TrainValConfigBase):
     GEN_CLASSES_FILE = True
     USE_tqdm_TRAIN = False
     INPUT_SIZE = (252,196)
