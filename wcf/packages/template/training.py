@@ -39,6 +39,8 @@ class TrainValConfigBase(ConfigBase):
     DATA_DIR = None
     INPUT_SIZE = (224, 224)
     BATCH_SIZE = 16
+    BATCH_SIZE_TRAIN=None
+    BATCH_SIZE_VAL=None
     MAX_EPOCHS = 100
     PATIENCE = 20
     LR_INIT = 1e-3
@@ -62,11 +64,14 @@ class TrainValConfigBase(ConfigBase):
     CLASSES_FILE_PATH='classes.txt'
 
 
-    def __init__(self):
-        self.train_data = Dataset(path=self.TRAIN_DIR, balance_classes=self.BALANCE_CLASSES, batch_size=self.BATCH_SIZE,
+    def __init__(self,**kwargs):
+        super().__init__(**kwargs)
+        self.BATCH_SIZE_TRAIN=self.BATCH_SIZE_TRAIN or self.BATCH_SIZE
+        self.BATCH_SIZE_VAL=self.BATCH_SIZE_VAL or self.BATCH_SIZE
+        self.train_data = Dataset(path=self.TRAIN_DIR, balance_classes=self.BALANCE_CLASSES, batch_size=self.BATCH_SIZE_TRAIN,
                                   device=self.DEVICE, transform=self.train_transform)
-        self.val_data = Dataset(path=self.VAL_DIR, balance_classes=self.BALANCE_CLASSES_VAL, batch_size=self.BATCH_SIZE,
-                                device=self.DEVICE, transform=self.val_transform)
+        self.val_data = Dataset(path=self.VAL_DIR, balance_classes=self.BALANCE_CLASSES_VAL, batch_size=self.BATCH_SIZE_VAL,
+                                device=self.DEVICE, transform=self.val_transform,shuffle=False)
         if self.__class__.NUM_CLASSES is None:
             self.__class__.NUM_CLASSES=self.train_data.num_classes
         self.model = self.get_model()

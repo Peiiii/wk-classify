@@ -13,10 +13,7 @@ class PredictConfigBase:
     CLASSES_PATH=None
     CLASSES=None
     INPUT_SIZE=(224,224)
-    transform= transforms.Compose([
-            transforms.Resize(INPUT_SIZE[::-1]),
-            transforms.ToTensor(),
-        ])
+    transform= None
     DEVICE=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     WEIGHTS_PATH='weights/model.pkl'
     def __init__(self,**kwargs):
@@ -34,6 +31,12 @@ class PredictConfigBase:
         self.model.load_state_dict(torch.load(self.WEIGHTS_PATH))
         self.model.to(self.DEVICE)
         self.model.eval()
+        self.transform=self.transform or self.get_transform()
+    def get_transform(self):
+        return transforms.Compose([
+            transforms.Resize(self.INPUT_SIZE[::-1]),
+            transforms.ToTensor(),
+        ])
     def get_model(self):
         return load_model(self.MODEL_TYPE,num_classes=len(self.CLASSES))
 

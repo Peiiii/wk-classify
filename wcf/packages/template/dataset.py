@@ -2,7 +2,8 @@
 import os, shutil, glob, random
 from PIL import Image
 import torch
-
+import math
+import  numpy as np
 IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
 
 
@@ -72,7 +73,7 @@ class Dataset:
         self.index_list = list(range(len(data)))
         if shuffle:
             random.shuffle(self.index_list)
-        self.num_batches = len(self.index_list) // self.batch_size
+        self.num_batches =math.floor( len(self.index_list) / self.batch_size)
         self.current_batch_index = -1
         if not device:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -89,8 +90,9 @@ class Dataset:
                 random.shuffle(self.index_list)
             self.current_batch_index = -1
             raise StopIteration
-        batch_inds = self.index_list[
-                     self.current_batch_index * self.batch_size:(self.current_batch_index + 1) * self.batch_size]
+        start_index=self.current_batch_index * self.batch_size
+        end_index=None if self.current_batch_index==self.num_batches-1 else (self.current_batch_index + 1) * self.batch_size
+        batch_inds = self.index_list[start_index:end_index]
         batch_img = []
         batch_labels = []
         for ind in batch_inds:
