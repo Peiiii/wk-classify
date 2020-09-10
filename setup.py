@@ -39,7 +39,7 @@ def get_version():
         f.write(version)
     return version
 
-packages=setuptools.find_packages(exclude=['local','local.*','vtgui','vtgui.*'])
+packages=setuptools.find_packages(where='wcf')
 # except_packages=['local','vtgui']
 # for pkg in except_packages:
 #     if pkg in packages:
