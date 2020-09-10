@@ -82,10 +82,12 @@ class TrainValConfigBase(ConfigBase):
                 f.write('\n'.join(self.train_data.classes))
         print('CONFIG INFO'.center(200,'*'))
         dic=self.get_config_info_dict()
-        max_length=max([len(k) for k in dic.keys()])
+        # max_length=max([len(k) for k in dic.keys()])
+        max_length=50
+        # print(max_length)
         for k,v in dic.items():
             # k=''
-            print('%s\t:\t%s'%(k.ljust(max_length,' '),v))
+            print('%s\t:\t%s'%(k.rjust(max_length,'_'),v))
     def check_params(self):
         assert self.DATA_DIR or self.TRAIN_DIR
     def get_model(self, num_classes=None):
