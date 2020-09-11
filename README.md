@@ -46,7 +46,7 @@ class Config(TrainValConfigBase):
         # t.RandomRotate(360),
         t.RandomTranslate(30),
         t.RandomBlur(p=0.3, radius=1),
-        t.RandomSPNoinse(p=0.3),
+        t.RandomSPNoise(p=0.3),
         *val_transform,
     ])
     # def get_model(self, num_classes=None):

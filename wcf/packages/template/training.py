@@ -8,6 +8,8 @@ from .config import ConfigBase
 from wcf.networks.utils import load_model
 import logging
 import json
+import time
+time_stamp=time.strftime('[%m%d]',time.localtime(time.time()))
 def load_weights(model, weights_path=None, except_keys=[],strict=False):
     if weights_path:
         if os.path.exists(weights_path):
@@ -32,7 +34,10 @@ def load_weights(model, weights_path=None, except_keys=[],strict=False):
 
 class TrainValConfigBase(ConfigBase):
     MODEL_TYPE='resnet18'
-    TAG = ''
+    TIME_STAMP=time_stamp
+    PROJECT_TAG = ''
+    EXTRA_TAG = ''
+    TAG = None
     NUM_CLASSES = None
     TRAIN_DIR = None
     VAL_DIR = None
@@ -53,7 +58,7 @@ class TrainValConfigBase(ConfigBase):
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     WEIGHTS_SAVE_INTERVAL = 1
     WEIGHTS_SAVE_DIR = 'weights/training'
-    WEIGHTS_SAVE_BEST_NAME = 'model{tag}_best_[epoch={epoch}&acc={val_acc:.4f}].pkl'
+    WEIGHTS_SAVE_BEST_NAME = 'model_best_{tag}[epoch={epoch}&acc={val_acc:.4f}].pkl'
     WEIGHTS_SAVE_NAME = 'model{tag}.pkl'
     VAL_INTERVAL = 1
     train_transform = None
@@ -62,12 +67,15 @@ class TrainValConfigBase(ConfigBase):
     USE_tqdm_VAL=False
     GEN_CLASSES_FILE=False
     CLASSES_FILE_PATH='classes.txt'
-
+    def get_TAG(self):
+        return '%s%s%s%s' % (self.PROJECT_TAG or '', self.TIME_STAMP or '', '[%s]'%(self.MODEL_TYPE), self.EXTRA_TAG or '')
 
     def __init__(self,**kwargs):
         super().__init__(**kwargs)
         self.BATCH_SIZE_TRAIN=self.BATCH_SIZE_TRAIN or self.BATCH_SIZE
         self.BATCH_SIZE_VAL=self.BATCH_SIZE_VAL or self.BATCH_SIZE
+        if self.TAG is None:
+            self.TAG =self.get_TAG()
         self.train_data = Dataset(path=self.TRAIN_DIR, balance_classes=self.BALANCE_CLASSES, batch_size=self.BATCH_SIZE_TRAIN,
                                   device=self.DEVICE, transform=self.train_transform)
         self.val_data = Dataset(path=self.VAL_DIR, balance_classes=self.BALANCE_CLASSES_VAL, batch_size=self.BATCH_SIZE_VAL,

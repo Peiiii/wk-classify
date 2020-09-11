@@ -18,6 +18,7 @@ wcf/packages/template/testing.py
 wcf/packages/template/training.py
 wcf/packages/template/transforms.py
 wcf/utils/__init__.py
+wcf/utils/app_utils.py
 wcf/utils/merge_imagefolders.py
 wcf/utils/misc.py
 wcf/utils/split_trainval.py

@@ -67,7 +67,7 @@ class EasyTransform(list):
         self.append(T)
         return T
 
-    def RandomSPNoinse(self, p=0.3):
+    def RandomSPNoise(self, p=0.3):
         T = img_aug.RandomApply(pil_ops.sp_noise, p=p)
         self.append(T)
         return T
